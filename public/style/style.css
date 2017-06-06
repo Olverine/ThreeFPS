@@ -1,0 +1,10 @@
+body{
+  margin: 0px;
+  overflow: hidden;
+}
+
+#crosshair{
+  position: fixed;
+  top: calc(50vh - 8px);
+  left: calc(50vw - 8px);
+}
