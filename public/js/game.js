@@ -8,7 +8,7 @@ const HEIGHT = window.innerHeight;
 const VIEW_ANGLE = 70;
 const ASPECT = WIDTH / HEIGHT;
 const NEAR = 0.1;
-const FAR = 128;
+const FAR = 256;
 
 console.log(WIDTH);
 console.log(HEIGHT);
@@ -45,6 +45,8 @@ const camera =
 var lookX = 0;
 var lookY = 0;
 var walkSpeed = 0.15;
+var verticalVelocity = 0;
+var grounded = true;
 
 var keydown = [];
 
@@ -139,6 +141,19 @@ function update () {
     camera.position.z = -63.5;
   }
 
+  if(grounded && keydown[32]){
+    verticalVelocity = 0.2;
+    grounded = false;
+  }
+
+  verticalVelocity -= 0.01;
+  camera.position.y += verticalVelocity;
+  if(camera.position.y < 1.5){
+    camera.position.y = 1.5;
+    verticalVelocity = 0;
+    grounded = true;
+  }
+
   socket.emit("update", camera.position, lookX, lookY);
 
   // Draw!
@@ -182,6 +197,12 @@ function lockChangeAlert() {
 function updatePosition(e) {
   lookX -= e.movementY / 200;
   lookY -= e.movementX / 200;
+
+  if(lookX < -90 * (Math.PI / 180)){
+    lookX = -90 * (Math.PI / 180);
+  }else if(lookX > 90 * (Math.PI / 180)){
+    lookX = 90 * (Math.PI / 180);
+  }
 }
 
 socket.on("update", function(data){
@@ -204,7 +225,7 @@ socket.on("update", function(data){
 
   if(!foundPlayer){
     var geometry = new THREE.CylinderGeometry( 0.5, 0.5, 2, 32 );
-    var material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+    var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
     var cylinder = new THREE.Mesh( geometry, material );
     scene.add( cylinder );
     objLoader.load(
