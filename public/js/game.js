@@ -16,6 +16,8 @@ console.log(HEIGHT);
 var players = [];
 var myID;
 
+var projectiles = [];
+
 // Get the DOM element to attach to
 const container = document.getElementById('container');
 
@@ -115,7 +117,7 @@ function update () {
   var playerBoundingBox = new THREE.Box3(new THREE.Vector3(camera.position.x - 0.5, 0, camera.position.z -0.5), new THREE.Vector3(camera.position.x + 0.5, 2, camera.position.z +0.5))
   for(var i = 0; i < boundingBoxes.length; i++){
     if(boundingBoxes[i].intersectsBox(playerBoundingBox)){
-      if(Math.abs(camera.position.x - boundingBoxes[i].getCenter.x) > Math.abs(camera.position.z - boundingBoxes[i].getCenter.z)){
+      if(Math.abs(camera.position.x - boundingBoxes[i].getCenter().x) > Math.abs(camera.position.z - boundingBoxes[i].getCenter().z)){
         if(camera.position.x < boundingBoxes[i].getCenter().x){
           camera.position.x = boundingBoxes[i].getCenter().x - 2.5;
         }else if(camera.position.x > boundingBoxes[i].getCenter().x){
@@ -169,6 +171,14 @@ canvas = document.getElementsByTagName('canvas')[0];
 
 onmousedown = function(e){
   canvas.requestPointerLock();
+
+  var matrix = new THREE.Matrix4();
+  matrix.extractRotation( camera.matrix );
+
+  var direction = new THREE.Vector3( 0, 0, -1 );
+  direction.applyMatrix4( matrix );
+
+  socket.emit("shoot", camera.position, direction);
 }
 
 document.addEventListener('keydown', function(event) {
@@ -266,6 +276,42 @@ socket.on('id', function(id){
         scene.remove(players[i].mesh);
         players.splice(i, 1);
         break;
+    }
+  }
+});
+
+socket.on("projectileUpdate", function(id,point,direction,iteration){
+  var foundProjectile = false;
+  projectiles.forEach(function(projectile){
+    if(projectile.id == id){
+      projectile.mesh.position.x = point.x + direction.x * iteration * 5;
+      projectile.mesh.position.y = point.y + direction.y * iteration * 5;
+      projectile.mesh.position.z = point.z + direction.z * iteration * 5;
+      foundProjectile = true;
+    }
+  });
+
+  if(!foundProjectile){
+    var geometry = new THREE.SphereGeometry( 0.1, 8, 8 );
+    var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+    var sphere = new THREE.Mesh( geometry, material );
+    scene.add( sphere );
+
+    var projectile = {
+      id: id,
+      mesh: sphere
+    }
+    projectiles.push(projectile);
+  }
+});
+
+
+socket.on("removeProjectile", function(id){
+  for(var i = 0; i < projectiles.length; i++){
+    if(projectiles[i].id == id){
+      scene.remove(projectiles[i].mesh);
+      projectiles.splice(i, 1);
+      break;
     }
   }
 });

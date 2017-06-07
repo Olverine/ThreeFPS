@@ -4,6 +4,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 8080;
 
+var projectiles = [];
+var projectileMaxIteration = 50;
+
 app.use(express.static('public'));
 
 app.get('/', function(req, res){
@@ -43,5 +46,26 @@ io.on('connection', function(socket){
 	socket.on("disconnect", function(){
 		console.log(id + " disconnected");
 		socket.broadcast.emit('disconnection', socket.id);
-	})
+	});
+
+	socket.on("shoot", function(point, direction){
+		var projectile = {
+			id: id++,
+			point: point,
+			direction: direction,
+			iteration: 0
+		};
+
+		projectiles.push(projectile);
+	});
 });
+
+setInterval(function(){
+	projectiles.forEach(function(projectile){
+		projectile.iteration ++;
+		if(projectile.iteration >= projectileMaxIteration)
+			io.sockets.emit("removeProjectile", projectile.id);
+		else
+			io.sockets.emit("projectileUpdate", projectile.id, projectile.point, projectile.direction, projectile.iteration);
+	});
+}, 30);
